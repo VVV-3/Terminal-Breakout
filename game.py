@@ -61,15 +61,11 @@ class Level:
             self._play = True
             frame = 0
             while self._level and self._play:
-                begin = time.monotonic()
-                
                 if frame == config.FRAME_RATE:
                     frame = 0
                     os.system("clear")
                     self.renderFrame()
                 frame += 1
-                # while time.monotonic() - begin < config.FRAME_TIME:
-                #     pass
 
     def renderFrame(self):
         #self.handleInput()
