@@ -40,10 +40,13 @@ class Window:
                 self._board[ pos[0] + i ][ pos[1] + j ] = color + sprite + Fore.RESET
     
     def printBoard(self):
-        print(self.CURSOR_0)
+        #print(self.CURSOR_0)
+        board = ""
         for i in range(self._height):
+            row = ""
             for j in range(self._width):
-                print(self._board[i][j], end='')
-            print('')
+                row += self._board[i][j]
+            board+=row + "\n"
+        print(board)
                 
 

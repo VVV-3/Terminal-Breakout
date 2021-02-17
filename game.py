@@ -2,9 +2,10 @@ import os
 import time
 from colorama import Fore, Back, Style
 import numpy as np
+from time import monotonic as clock, sleep
 
 import config
-# from inp import Get, input_to
+from inp import KBHit
 from window import Window
 from objects import Ball, Paddle
 
@@ -36,6 +37,7 @@ class Level:
         self._height = config.BOARD_HEIGHT 
         self._width = config.BOARD_WIDTH
 
+        self._keyboard = KBHit()
         self._window = Window(self._height, self._width)
 
         self._level = True
@@ -45,42 +47,52 @@ class Level:
 
         
         self._paddle = Paddle([int(self._height - 5), int(self._width/2) - 16])
-        self._balls = [Ball( [self._paddle._pos[0] - 3 , self._paddle._pos[1] + 1] )]
+        self._balls = [Ball([0,0])]
+        #self._balls = [Ball( [self._paddle._pos[0] - 3 , self._paddle._pos[1] + 1] )]
         # self._bricks = []
 
     def startLevel(self):
-    
 
         while self._level:
-            # self.printScreen()
-            # print('Press W to start')
-            # while not self._play:
-            #     ch = input_to(Get())
-            #     if ch == 'w':
-            #         self._play = True
             self._play = True
-            frame = 0
             while self._level and self._play:
-                if frame == config.FRAME_RATE:
-                    frame = 0
-                    os.system("clear")
-                    self.renderFrame()
-                frame += 1
+                start_time = clock()
+                os.system("clear")
+                self.renderFrame()
+                while clock() - start_time < config.FRAME_TIME:
+                    pass
+    
+        # while self._level:
+        #     # self.printScreen()
+        #     # print('Press W to start')
+        #     # while not self._play:
+        #     #     ch = input_to(Get())
+        #     #     if ch == 'w':
+        #     #         self._play = True
+        #     self._play = True
+        #     frame = 0
+        #     while self._level and self._play:
+        #         if frame == config.FRAME_RATE:
+        #             frame = 0
+        #             os.system("clear")
+        #             self.renderFrame()
+        #         frame += 1
 
     def renderFrame(self):
-        #self.handleInput()
+        self.handleInput()
         self.moveObjects()
         self.handleCollisions()
         self.printScreen()
 
     def handleInput(self):
-        # self._ch = input_to(Get(),config.FRAME_TIME)
-        if (self._paddle._pos[1] - self._paddle._velocity[1] > 1):
-            self._paddle._pos -= self._paddle._velocity
-        else:
-            self._paddle._pos += self._paddle._velocity
-        # if (self._paddle._pos[1] + self._paddle._velocity[1] < self._width - 2):
-        #     self._paddle._pos += self._paddle._velocity
+
+        if self._keyboard.kbhit():
+            inp = self._keyboard.getch()
+            if (inp == 'a') and (self._paddle._pos[1] - self._paddle._velocity[1] > 0):
+                self._paddle._pos -= self._paddle._velocity
+            if (inp == 'd') and (self._paddle._pos[1] + self._paddle._size[1] + self._paddle._velocity[1] < self._width ):
+                self._paddle._pos += self._paddle._velocity
+            self._keyboard.flush()
 
     def moveObjects(self):
         
@@ -116,9 +128,9 @@ class Level:
                 if( (ball._pos[1] + ball._velocity[1] >= self._paddle._pos[1]) and (ball._pos[1] + ball._velocity[1] < self._paddle._pos[1] + (size)) ):
                     ball._velocity = np.array([-1,-2])
                 if( (ball._pos[1] + ball._velocity[1] >= self._paddle._pos[1] + (size)) and (ball._pos[1] + ball._velocity[1] < self._paddle._pos[1] + (2*size)) ):
-                    ball._velocity = np.array([-2,-1])
+                    ball._velocity = np.array([-1,-1])
                 if( (ball._pos[1] + ball._velocity[1] >= self._paddle._pos[1] + (2*size)) and (ball._pos[1] + ball._velocity[1] < self._paddle._pos[1] + (3*size)) ):
-                    ball._velocity = np.array([-2,1])
+                    ball._velocity = np.array([-1,1])
                 if( (ball._pos[1] + ball._velocity[1] >= self._paddle._pos[1] + (3*size)) and (ball._pos[1] + ball._velocity[1] < self._paddle._pos[1] + (4*size)) ):
                     ball._velocity = np.array([-1,2])
 

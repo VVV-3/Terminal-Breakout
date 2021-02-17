@@ -1,40 +1,35 @@
+import os
 import sys
 import termios
-import tty
-import signal
-
-class Get:
-    """Class to get input."""
-
-    def __call__(self):
-        """Defining __call__."""
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch = sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
-
-class AlarmException(Exception):
-    """Handling alarm exception."""
-    pass
+import atexit
+from select import select
 
 
-def alarmHandler(signum, frame):
-    """Handling timeouts."""
-    raise AlarmException
+class KBHit:
 
+    def __init__(self):
+        # Save the terminal settings
+        self._fd = sys.stdin.fileno()
+        self._new_term = termios.tcgetattr(self._fd)
+        self._old_term = termios.tcgetattr(self._fd)
 
-def input_to(getch, timeout=0.1):
-    """Taking input from user."""
-    signal.signal(signal.SIGALRM, alarmHandler)
-    signal.setitimer(signal.ITIMER_REAL, timeout)
-    try:
-        text = getch()
-        signal.alarm(0)
-        return text
-    except AlarmException:
-        signal.signal(signal.SIGALRM, signal.SIG_IGN)
-        return None
+        # New terminal setting unbuffered
+        self._new_term[3] = (self._new_term[3] & ~
+                            termios.ICANON & ~termios.ECHO)
+        termios.tcsetattr(self._fd, termios.TCSAFLUSH, self._new_term)
+
+        # Support normal-terminal reset at exit
+        atexit.register(self.set_normal_term)
+
+    def set_normal_term(self):
+        termios.tcsetattr(self._fd, termios.TCSAFLUSH, self._old_term)
+
+    def getch(self):
+        return sys.stdin.read(1)
+
+    def kbhit(self):
+        dr, dw, de = select([sys.stdin], [], [], 0)
+        return dr != []
+
+    def flush(self):
+        termios.tcflush(sys.stdin, termios.TCIOFLUSH)
