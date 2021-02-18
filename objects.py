@@ -26,7 +26,7 @@ class Ball(BaseObject):
         if color == None:
             color = config.BALL_COLOR
         if strength == None:
-            strength == config.BALL_STRENGTH
+            strength = config.BALL_STRENGTH
 
         super().__init__( np.array(pos), np.array(size), config.BALL_SPRITE, color)
         self._velocity = velocity
@@ -51,11 +51,25 @@ class Paddle(BaseObject):
         super().__init__( np.array(pos), np.array(size), config.PADDLE_SPRITE, color)
         self._velocity = velocity
 
+class Brick(BaseObject):
+    def __init__(self, pos, health = None, size = None):
+        if size == None:
+            size = config.BRICK_SIZE
+        if health == None:
+            health = config.BRICK_HEALTH
+        self._color_map = config.BRICK_COLOR_MAP
+        self._sprite_map = config.BRICK_SPRITE_MAP
+        super().__init__( np.array(pos), np.array(size), self._sprite_map[health], self._color_map[health] )
+        self._health = health
 
-    
-        
-
-# ball = Ball([0,0])
-# pos,size,rep = ball.show()
-# ball.move()
-# print(ball._velocity)
+    def hit(self, strength ):
+        if(strength == -1):
+            return True
+        elif (self._health != 0):
+            if strength >= self._health:
+                return True
+            else:
+                self._health -= strength
+                self._color = self._color_map[self._health]
+                self._sprite = self._sprite_map[self._health]
+        return False
