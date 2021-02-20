@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import random
 from colorama import Fore, Back, Style
 import numpy as np
 from time import monotonic as clock, sleep
@@ -8,7 +9,9 @@ from time import monotonic as clock, sleep
 import config
 from keyboard_input import KBHit
 from window import Window
-from objects import Ball, Paddle, Brick
+from objects import Ball, Paddle, Brick, Power_Up
+
+
 
 class Game:
 
@@ -30,10 +33,10 @@ class Game:
         print('GAME OVER..... POINTS: ' + str(self._points))
 
 
+
 class Level:
 
     def __init__(self,level,lives,points):
-
 
         self._height = config.BOARD_HEIGHT 
         self._width = config.BOARD_WIDTH
@@ -49,57 +52,81 @@ class Level:
         self._play = False
         self._lives = lives
         self._points = points
-
-        
-        self._paddle = None
-        self._balls = []
+  
+        self._paddle = Paddle([int(self._height - 8), int(self._width/2 - 8)])
+        self._balls = [Ball([30,30 + 12])]
         self._bricks = [Brick([5,5],0), Brick([10,10],1) , Brick([15,15],3) , Brick([20,20],2)]
         self._brick_count = 3
+        self._power_ups = [] #Power_Up([5,5],1),Power_Up([10,10],2)
+        self._power_up_count = 3
 
-        
-
+    
     def startLevel(self):
 
         while self._level:
-
-            self._window.printBoard()
+            self._window.clearBoard()
             self._window.printText([self._height - 5, 35], 'Level: ' + str(self._lvl))
             self._window.printText([self._height - 2, 30], 'TERMINAL - BREAKOUT')
-            self._window.printText([self._height - 5, 5], 'Lives: ' + str(self._lives))
-            self._window.printText([self._height - 5, 65], 'Points: ' + str(self._points))
-            self._window.printText([self._height - 4, 15], 'Press W to start and A and D keys to control Paddle ')
-            self._paddle = Paddle([int(self._height - 8), int(self._width/2 - 8)])
-            self._balls = [Ball([30,30 + 12])]
+            self._window.printText([self._height - 3, 15], 'Press W to start and A and D keys to control Paddle ')
             self.printScreen()
 
             while not self._play:
                 if self._keyboard.kbhit():
                     inp = self._keyboard.getch()
+                    inp = inp.lower()
                     if inp == 'w':
                         self._play = True 
-                        self._window.clearObject(([self._height - 4, 0],[1,self._width]))   
+                        self._window.clearObject(([self._height - 3, 0],[1,self._width]))
+                    self._keyboard.flush()
 
-            while self._level and self._play:
+            while self._level and self._play:  
                 start_time = clock()
 
+                self.expirePowerUps()
                 self.handleInput()
                 self.moveObjects()
                 self.handleCollisions()
-
-
                 self.printScreen()
-                self._window.printText([self._height - 5, 5], 'Lives: ' + str(self._lives))
-                self._window.printText([self._height - 5, 65], 'Points: ' + str(self._points))
                 
                 while clock() - start_time < config.FRAME_TIME:
                     pass
 
         return self._lives,self._points
-      
 
+
+    def expirePowerUps(self):
+        i = 0
+        while i < len(self._power_ups):
+            power = self._power_ups[i]
+            self._window.clearObject(power.show())
+            
+            if power._on == True:
+                if power.expiry():
+
+                    if power._id == 1:
+                        self._paddle._size[1] -= (config.EXPAND_PADDLE_POWER_UP_LENGTH)
+                    elif power._id == 2:
+                        self._paddle._size[1] += (config.SHRINK_PADDLE_POWER_UP_LENGTH)
+                    elif power._id == 4:
+                        for ball in self._balls:
+                            ball._velocity[1] -= 1
+                    elif power._id == 5:
+                        for ball in self._balls:
+                            ball._strength = config.BALL_STRENGTH
+                    elif power._id == 6:
+                        self._paddle._grab = False
+
+
+                    t = self._power_ups[i]
+                    self._power_ups.pop(i)
+                    del t
+                    i-=1
+            i+=1
+        
+      
     def handleInput(self):
         if self._keyboard.kbhit():
-            inp = self._keyboard.getch()
+            inp = self._keyboard.getch().lower()
             if (inp == 'a') and (self._paddle._pos[1] - self._paddle._velocity[1] >= 0):
                 self._window.clearObject(([self._paddle._pos[0],0],[self._paddle._size[0],self._width]))
                 self._paddle._pos -= self._paddle._velocity
@@ -113,49 +140,59 @@ class Level:
             self._window.clearObject(ball.show())
             ball.move()
 
+        i = 0
+        while i < len(self._power_ups):
+            power = self._power_ups[i]
+            self._window.clearObject(power.show())
+            if power._on == False:
+                power.move()
+                if power._pos[0] > self._height - 5 : 
+                    t = self._power_ups[i]
+                    self._power_ups.pop(i)
+                    del t
+                    i-=1
+            i+=1
+
+
     def handleCollisions(self):
         self.handleBrickBallCollisions()
         self.handleBorderBallCollisions()
         self.handlePaddleBallCollisions()
-        
+        self.handlePaddlePowerUpCollisons()
+
+
     def handleBrickBallCollisions(self):
         for ball in self._balls:
             i = 0
             while i < len(self._bricks):
-
                 brick = self._bricks[i]
                 collide = False
                 hit = False
-                ball_y = ball._pos[0]
-                ball_x = ball._pos[1]
-                ball_vy = ball._velocity[0]
-                ball_vx = ball._velocity[1]
-                brick_y = brick._pos[0]
-                brick_x = brick._pos[1]
-                brick_hi = brick._size[0]
-                brick_wi = brick._size[1]
 
-                if (ball_y >= brick_y - 1) and (ball_y + ball_vy <= brick_y - 1):
-                    if (ball_x >= brick_x) and (ball_x <= brick_x + brick_wi):
-                       collide = True
-                    elif (ball_x  + ball_vx >= brick_x ) and (ball_x + ball_vx <= brick_x + brick_wi):
+                if (ball._pos[0] + ball._velocity[0] >= brick._pos[0]) and (ball._pos[0] + ball._velocity[0] < brick._pos[0] + brick._size[0]):
+                    if (ball._pos[1] + ball._velocity[1] >= brick._pos[1]) and (ball._pos[1] + ball._velocity[1] < brick._pos[1] + brick._size[1]):
                         collide = True
-                elif (ball_y <= brick_y + brick_hi ) and (ball_y + ball_vy >= brick_y + brick_hi):
-                    if (ball_x >= brick_x) and (ball_x <= brick_x + brick_wi):
-                        collide = True
-                    elif (ball_x  + ball_vx >= brick_x ) and (ball_x + ball_vx <= brick_x + brick_wi):
-                        collide = True
-
 
                 if collide:
-                    ball._velocity *= np.array([-1,1])
+                    if ball._strength != -1:
+                        ball._velocity *= np.array([-1,1])
                     hit = brick.hit(ball._strength)
                     self._points += config.POINTS_PER_HIT
+
                     if hit :
+                        if self._power_up_count > 0:
+                            if (random.random() < float(self._power_up_count/self._brick_count)):
+                                temp = random.randint(1,len(config.POWER_UP_COLOR_MAP) - 1)
+                                self._power_ups.append(Power_Up(brick._pos, temp))
+                                self._power_up_count -= 1
+
+
                         t = self._bricks[i]
                         self._window.clearObject(self._bricks[i].show())
                         if self._bricks[i]._health != 0:
                             self._brick_count -=1
+
+                                
                         self._bricks.pop(i)
                         if self._brick_count == 0:
                             self._level = False
@@ -163,10 +200,10 @@ class Level:
                         i-=1
                 i+=1
 
+
     def handleBorderBallCollisions(self):
         i = 0
         while i < len(self._balls):
-
             ball = self._balls[i]
 
             if(ball._pos[1] + ball._velocity[1] <= 0):  #Left Border
@@ -189,31 +226,73 @@ class Level:
 
                 if len(self._balls) == 0:
                     self._lives -= 1
+                    self._paddle = Paddle([int(self._height - 8), int(self._width/2 - 8)])
+                    self._balls = [Ball([30,30 + 12])]
+                    self._power_ups = []
                     if self._lives <= 0:
                         self._level = False
                     self._play = False
                     break
-
                 i-=1
-
             i+=1
+
             
     def handlePaddleBallCollisions(self):
         for ball in self._balls:
             if(ball._pos[0] + ball._velocity[0] >= self._paddle._pos[0]):
                 size = self._paddle._size[1]/4
                 if( (ball._pos[1] + ball._velocity[1] >= self._paddle._pos[1]) and (ball._pos[1] + ball._velocity[1] < self._paddle._pos[1] + (size)) ):
-                    ball._velocity = np.array([-1,-2])
+                    if self._paddle._grab:
+                        self._play = False
+                    ball._velocity = np.array(config.PADDLE_DEFLECT_LIST[0])
                 if( (ball._pos[1] + ball._velocity[1] >= self._paddle._pos[1] + (size)) and (ball._pos[1] + ball._velocity[1] < self._paddle._pos[1] + (2*size)) ):
-                    ball._velocity = np.array([-1,-1])
+                    if self._paddle._grab:
+                        self._play = False
+                    ball._velocity = np.array(config.PADDLE_DEFLECT_LIST[1])
                 if( (ball._pos[1] + ball._velocity[1] >= self._paddle._pos[1] + (2*size)) and (ball._pos[1] + ball._velocity[1] < self._paddle._pos[1] + (3*size)) ):
-                    ball._velocity = np.array([-1,1])
+                    if self._paddle._grab:
+                        self._play = False
+                    ball._velocity = np.array(config.PADDLE_DEFLECT_LIST[2])
                 if( (ball._pos[1] + ball._velocity[1] >= self._paddle._pos[1] + (3*size)) and (ball._pos[1] + ball._velocity[1] < self._paddle._pos[1] + (4*size)) ):
-                    ball._velocity = np.array([-1,2])
+                    if self._paddle._grab:
+                        self._play = False
+                    ball._velocity = np.array(config.PADDLE_DEFLECT_LIST[3])
+
+
+    def handlePaddlePowerUpCollisons(self):
+        for power in self._power_ups:
+            if (power._pos[0] >= self._paddle._pos[0]) and (power._pos[0] < self._paddle._pos[0] + self._paddle._size[0]):
+                if (power._pos[1] >= self._paddle._pos[1]) and (power._pos[1] < self._paddle._pos[1] + self._paddle._size[1]):
+
+                    power.activate()
+                    
+                    if power._id == 1:
+                        self._paddle._size[1] += (config.EXPAND_PADDLE_POWER_UP_LENGTH)
+                    elif power._id == 2:
+                        self._paddle._size[1] -= (config.SHRINK_PADDLE_POWER_UP_LENGTH)
+                    elif power._id == 3:
+                        new_balls = []
+                        for ball in self._balls:
+                            pos = np.array(ball._pos)
+                            vel = np.array(ball._velocity)*np.array([1,-1])
+                            ba = Ball(pos= pos)
+                            ba._velocity = vel
+                            new_balls.append(ba)
+                        self._balls += new_balls
+                    elif power._id == 4:
+                        for ball in self._balls:
+                            ball._velocity[1] += 1
+                    elif power._id == 5:
+                        for ball in self._balls:
+                            ball._strength = -1
+                    elif power._id == 6:
+                        self._paddle._grab = True
 
 
     def printScreen(self):
-        #self._window.clearBoard()
+        for power in self._power_ups:
+            self._window.addObject(power.show())
+
         for brick in self._bricks:
             self._window.addObject(brick.show())
 
@@ -221,6 +300,6 @@ class Level:
             self._window.addObject(ball.show())
 
         self._window.addObject(self._paddle.show())
-        #print(self._paddle.show()) 
 
-        #self._window.printBoard()
+        self._window.printText([self._height - 5, 5], 'Lives: ' + str(self._lives))
+        self._window.printText([self._height - 5, self._width - 15], 'Points: ' + str(self._points))

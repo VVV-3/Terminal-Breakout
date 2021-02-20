@@ -6,7 +6,6 @@ from select import select
 
 
 class KBHit:
-
     def __init__(self):
         # Save the terminal settings
         self._fd = sys.stdin.fileno()

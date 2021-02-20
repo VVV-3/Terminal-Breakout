@@ -4,7 +4,6 @@ from sys import stdout
 
 import config
 
-
 class Window:
     CURSOR_0 = "\033[0;0H"
     CLEAR = "\033[2J"
@@ -26,17 +25,11 @@ class Window:
 
         self._back_board[0][0] = config.BORDER_COLOR + '+'#"┏"
         self._back_board[0][self._width - 1] = config.BORDER_COLOR + '+'#"┓"
-        # self._back_board[self._height - 6][0] = Fore.WHITE + '+'#config.BORDER_COLOR + "┗"
-        # self._back_board[self._height - 6][ self._width - 1] = Fore.WHITE + '+'#config.BORDER_COLOR + "┛" + Back.RESET
         self._back_board[self._height - 1][0] = Fore.WHITE + '+'#config.BORDER_COLOR + "┗"
         self._back_board[self._height - 1][ self._width - 1] = Fore.WHITE + '+'#config.BORDER_COLOR + "┛" + Back.RESET
 
-        self.printBoard()
 
-        # self._board = np.array(self._back_board)
-
-
-    def printBoard(self):
+    def clearBoard(self):
         for i in range(self._height):
             for j in range(self._width):
                 stdout.write(f"\x1b[{0};0H")
@@ -44,6 +37,7 @@ class Window:
                 stdout.write(f"\x1b[{j+1}C")
                 stdout.write(self._back_board[i][j])
                 stdout.flush()
+
 
     def printText(self,pos,text):
         le = len(text)
@@ -53,7 +47,6 @@ class Window:
             stdout.write(f"\x1b[{pos[1] + i + 1}C")
             stdout.write(config.TEXT_COLOR + text[i])
             stdout.flush()
-
 
 
     def clearObject(self, obj):
@@ -66,6 +59,7 @@ class Window:
                 stdout.write(self._back_board[pos[0] + i][pos[1] + j])
                 stdout.flush()
 
+
     def addObject(self, obj):
         pos,size,sprite,color = obj
         for i in range(size[0]):
@@ -75,11 +69,3 @@ class Window:
                 stdout.write(f"\x1b[{pos[1] + j+1}C")
                 stdout.write(color + sprite)
                 stdout.flush()
-
-
-
-
-    
-        
-                
-
