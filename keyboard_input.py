@@ -5,7 +5,7 @@ import atexit
 from select import select
 
 
-class KBHit:
+class KB:
     def __init__(self):
         # Save the terminal settings
         self._fd = sys.stdin.fileno()
@@ -24,6 +24,7 @@ class KBHit:
         termios.tcsetattr(self._fd, termios.TCSAFLUSH, self._old_term)
 
     def getch(self):
+        s=''
         return sys.stdin.read(1)
 
     def kbhit(self):

@@ -64,8 +64,9 @@ class Window:
         pos,size,sprite,color = obj
         for i in range(size[0]):
             for j in range(size[1]):
-                stdout.write(f"\x1b[{0};0H")
-                stdout.write(f"\x1b[{pos[0] + i+1}B")
-                stdout.write(f"\x1b[{pos[1] + j+1}C")
-                stdout.write(color + sprite)
-                stdout.flush()
+                if (pos[0] + i  < self._height) and (pos[1] + j < self._width):
+                    stdout.write(f"\x1b[{0};0H")
+                    stdout.write(f"\x1b[{pos[0] + i+1}B")
+                    stdout.write(f"\x1b[{pos[1] + j+1}C")
+                    stdout.write(color + sprite)
+                    stdout.flush()

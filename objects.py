@@ -63,7 +63,7 @@ class Brick(BaseObject):
         if(strength == -1):
             return True
         elif (self._health != 0):
-            if strength >= self._health:
+            if strength >= self._health or self._health == 4:
                 return True
             else:
                 self._health -= strength
@@ -93,3 +93,9 @@ class Power_Up(BaseObject):
         if clock() - self._start_time > config.POWER_UP_TIME:
             return True
         return False
+
+class SuperBall(Ball):
+    def __init__( self, pos, size = None, velocity = None, color = None, strength = None):
+        super.__init__( self, pos, size = None, velocity = None, color = None, strength = None)
+    def move(self):
+        self._pos += config.POWER_UP_VELOCITY
